@@ -1,0 +1,5 @@
+# pas de fichier csv
+*.csv
+
+# pas de fichier temporaire
+*~
