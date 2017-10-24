@@ -1,3 +1,10 @@
+#######################
+# Authors:
+# Tristan FRANCES
+# Antoine KOURMANALIEVA
+# Mercia NGOMA KOMB
+#######################
+
 setwd("~/Bureau/m2/s3/stat/project/script/")
 ######################################
 # Imporation des données : paramètres mesurés selon mois et selon année
@@ -7,16 +14,20 @@ mois<-read.csv("bdd_mois_somlit.csv", header = T,  dec = ".")
 annee<-read.csv("bdd_annee_somlit.csv", header = T,  dec = ".")
 
 #############
-# Analyse multivariée ACP
+# Traitement des données pour l'Analyse multivariée ACP
 #############
 str(annee)
 summary(annee)
 
-# exemple d'ACP pour Antioche pour paramètre pH et température
+# exemple d'ACP pour Antioche et Eyrac pour paramètre pH, température, Sallinité et Oxygene 
 
 # choix des paramètres(select) et de l'année/site
 data0<-subset(annee, NOM_SITE=="Antioche" | NOM_SITE=="Eyrac", select = c("pH","Temperature", "Salinite", "Oxygene"))
-data<-subset(annee, NOM_SITE=="Antioche" | NOM_SITE=="Eyrac", select = c("Annee","NOM_SITE","pH","Temperature", "Salinite", "Oxygene"))
+data0<-na.omit(data0)
+
+data<-subset(annee, NOM_SITE=="Antioche" | NOM_SITE=="Eyrac", select = c("Annee","NOM_SITE","pH","Temperature", "Salinite", "Oxygene")) # utile pour la représentation graphique
+data<-na.omit(data)
+
 # nb_na<-sum(is.na(annee)) # Calculer nombre de NA présent dans le sous ensemble
 # c("Il y a", nb_na,"NA")
 
@@ -24,13 +35,16 @@ data<-subset(annee, NOM_SITE=="Antioche" | NOM_SITE=="Eyrac", select = c("Annee"
 # Transformation des paramètres année et mois en facteur (pour une représentation utilisant s.class)
 #############
 
-#data$Annee<-as.factor(data$Annee)
+data$Annee<-as.factor(data$Annee)
 # mois$Annee<-as.factor(mois$Annee); mois$Mois<-as.factor(mois$Mois)
 
-
+#############
+# Réalisation de l'ACP
+#############
 
 library(FactoMineR)
-ACP<-PCA(scale(data0), scale.unit = TRUE )
+?PCA
+ACP<-PCA(scale(data0), scale.unit = TRUE, graph= FALSE)
 round(ACP$eig,2)
 barplot(ACP$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres")
 100/ncol(data) #contrib min
@@ -53,15 +67,12 @@ plot(ACP,choix="ind",axes= c(1,2))
 ###############
 
 par(mfrow=c(1,1))
-?plot
 plot(Temperature~Annee, data=data, type = "n", main = "Température selon Année")
 with(subset(data, NOM_SITE=="Eyrac"), c(lines(Annee, Temperature, col = 1), points(Annee, Temperature, col = 1, pch = 16)))
-with(subset(data, NOM_SITE=="Antioche"), c(lines(Annee, Temperature, col = 2), points(Annee, Temperature, col = 2, pch = 16)))
-legend("topleft", legend=c("Eyrac", "Antioche"), col=c(1:2), pch = 16, lty = 1, title = "Sites")
+with(subset(data, NOM_SITE=="Antioche"), c(lines(Annee, Temperature, col = 2), points(Annee, Temperature, col = 2, pch = 17)))
+legend("topleft", legend=c("Eyrac", "Antioche"), col=c(1:2), pch = c(16,17), lty = 1, title = "Sites")
 
 library(lattice)
 # /!\ Problème de légende
 xyplot(Temperature~Annee, groups = NOM_SITE, data=data, type = "b", main="Température~Année", xlab="Années", ylab="Températures", col=c(1:2), pch=c(16:17))
 legend("topleft", legend=c("Eyrac", "Antioche"), col=c(1:2), pch = c(16:17), title = "Sites")
-
-
