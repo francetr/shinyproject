@@ -28,14 +28,14 @@ data0<-na.omit(data0)
 data<-subset(annee, NOM_SITE=="Antioche" | NOM_SITE=="Eyrac", select = c("Annee","NOM_SITE","pH","Temperature", "Salinite", "Oxygene")) # utile pour la représentation graphique
 data<-na.omit(data)
 
-# nb_na<-sum(is.na(annee)) # Calculer nombre de NA présent dans le sous ensemble
-# c("Il y a", nb_na,"NA")
+nb_na<-sum(is.na(data0)) # Calculer nombre de NA présent dans le sous ensemble
+c("Il y a", nb_na,"NA")
 
 #############
 # Transformation des paramètres année et mois en facteur (pour une représentation utilisant s.class)
 #############
 
-data$Annee<-as.factor(data$Annee)
+# data$Annee<-as.factor(data$Annee)
 # mois$Annee<-as.factor(mois$Annee); mois$Mois<-as.factor(mois$Mois)
 
 #############
@@ -68,11 +68,14 @@ plot(ACP,choix="ind",axes= c(1,2))
 
 par(mfrow=c(1,1))
 plot(Temperature~Annee, data=data, type = "n", main = "Température selon Année")
+
 with(subset(data, NOM_SITE=="Eyrac"), c(lines(Annee, Temperature, col = 1), points(Annee, Temperature, col = 1, pch = 16)))
 with(subset(data, NOM_SITE=="Antioche"), c(lines(Annee, Temperature, col = 2), points(Annee, Temperature, col = 2, pch = 17)))
 legend("topleft", legend=c("Eyrac", "Antioche"), col=c(1:2), pch = c(16,17), lty = 1, title = "Sites")
 
 library(lattice)
 # /!\ Problème de légende
-xyplot(Temperature~Annee, groups = NOM_SITE, data=data, type = "b", main="Température~Année", xlab="Années", ylab="Températures", col=c(1:2), pch=c(16:17))
-legend("topleft", legend=c("Eyrac", "Antioche"), col=c(1:2), pch = c(16:17), title = "Sites")
+xyplot(Temperature~Annee, groups = NOM_SITE, data=data, type = "b", main="Température~Année", 
+  xlab="Années", ylab="Températures", col=c(1:2), pch=c(16:17), 
+  key=list(space="right", lines=list(col=c(1:2)), text=list(c("Eyrac","Antioches")))
+)
