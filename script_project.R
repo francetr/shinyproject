@@ -36,7 +36,6 @@ nom_col<-t(nom_col) # transposition du dataframe pour avoir le nombre de lignes 
 na_df<-data.frame(nom_col) # Création d'un dataframe à partir du nom de colonnes
 rownames(na_df)<-"NA"
 dim(na_df)
-?seq
 for (i in seq(from = 1, to = length(colnames(data0)), by = 1)) {
   na_df[i]<-sum(is.na(data0[,i])); # ajout valeur NA pour chaque colonne
 }
@@ -61,7 +60,6 @@ databis<-na.omit(data)
 #############
 
 library(FactoMineR)
-?PCA
 ACP<-PCA(scale(data0bis), scale.unit = TRUE, graph= FALSE)
 round(ACP$eig,2)
 barplot(ACP$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres")
@@ -75,6 +73,7 @@ par(mfrow=c(1,2))
 plot(ACP,choix="var",axes= c(1,2))
 plot(ACP,choix="ind",axes= c(1,2))
 
+coord_var<-round(ACP$var$coord[,1:2],2)
 #library(ade4)
 #s.class(ACP$ind$coord[,c(1,2)] , fac=data$NOM_SITE, col=c(1:20) )
 #s.class(ACP$ind$coord[,c(1,2)] , fac=data$Annee, col=c(1:20) )
@@ -84,6 +83,7 @@ plot(ACP,choix="ind",axes= c(1,2))
 # Représentations graphiques avec plot ou xyplot
 ###############
 
+# Représentation d'une variable selon le temps
 par(mfrow=c(1,1))
 plot(DN15~Annee, data=databis, type = "n", main = "Température selon Année")
 with(subset(databis, NOM_SITE=="Eyrac"), c(lines(Annee, DN15, col = 1), points(Annee, DN15, col = 1, pch = 16)))
@@ -96,4 +96,18 @@ xyplot(DN15~Annee, groups = NOM_SITE, data=databis, type = "b", main="Températu
   xlab="Années", ylab="DN15", col=c(1:2), pch=c(16:17), 
   key=list(space="right", lines=list(col=c(1:2)), text=list(c("Eyrac","Antioches")))
 )
+
+?plot
+?abline
+# Représentation des coordonnées des variables
+# Représentation avec barplots
+barplot(coordP[,1], ylim = c(-1,1), main = "Coordonnées de l'axe 1 des différents paramètres sur \n le cercle de corrélation")
+barplot(coordP[,2], ylim = c(-1,1), main = "Coordonnées de l'axe 2 des différents paramètres sur \n le cercle de corrélation")
+
+# Représentation avec plots PB : PAS DE PRECISION DES NOM DE PARAMETRES POUR L'AXE X
+plot(Dim.1~1, data=coordP, type = "p", main = "Coordonnées des variables pour le 1er axe", xlab="Paramètres", ylab = "Coordonnées du cercle de corrélation")
+abline(a=0, b=0, lty=2, col="red")
+
+plot(Dim.2~1, data=coordP,type = "p", main = "Coordonnées des variables pour le 2ème axe", xlab="Paramètres", ylab = "Coordonnées du cercle de corrélation")
+abline(a=0, b=0, lty=2, col="red")
 
