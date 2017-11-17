@@ -51,22 +51,27 @@ ui <- navbarPage(
     ),
   #------- Panel containing the ACP (use conditionnal panel?)
   tabPanel("ACP",
-      fluidRow(
-        h2("Analyse multivariee"),
-        column(12
-               #,PCA(scale("data"), scale.unit = TRUE, graph= FALSE)
-               )
-      )
+           fluidRow(
+             h2("Analyse multivariée"),
+             column(4, 
+                    plotOutput("vfm")),
+             column(4, 
+                    plotOutput("ifm")),
+             column(4, 
+                    plotOutput("ebouli"))
+             
+           )
   ),
+  
+  
   #------- Panel containing the graphic representations
   tabPanel("Représentations",
-      fluidRow(
-        h2("Représentations graphiques"),
-        column(12,
-               plotOutput("plot_parametres")
-               )
-        )
-      )
+           fluidRow(
+             h2("Représentations graphiques"),
+             column(12
+             )
+           )
+  )
 )
 
 #--------- Server part
@@ -129,6 +134,30 @@ server <- function(input, output){
     na.omit(subset(data_annee(), NOM_SITE %in% choix_stations(), select = choix_parametres()))
   )
   output$data_sans_na<-renderDataTable(data_sans_na())
+  
+  #--- ACP result
+  
+  vfm<-reactive(
+    PCA(scale(data_sans_na())))
+  output$vfm<-renderPlot(vfm())
+  
+  #--- ebouli
+  
+  ebouli<-reactive(
+    barplot(vfm()$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres")
+  )
+  output$ebouli<-renderPlot(ebouli())
+  
+  #--- individual factor map
+  
+  ifm<-reactive(
+    plot(vfm(),choix="ind",axes= c(1,2))
+    
+  )
+  output$ifm<-renderPlot(ifm())
+  
+  
+  
 }
 
 shinyApp(ui = ui, server = server)
