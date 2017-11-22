@@ -46,7 +46,7 @@ ui <- navbarPage(
                     , p("Vous avez sélectionné les paramètres suivants : "), hr(), verbatimTextOutput("parametres")
              ),
              #---- Data displays according the parametres selected by user
-            column(12, helpText("Calcul du nombre de NA pour les stations et paramètres sélectionnés")
+            column(12, h2("Calcul du nombre de NA pour les stations et paramètres sélectionnés"), helpText("Attention suivant le nombre de NA pour un pramètre donné, l'analyse peut être fortement biaisée")
                    ,dataTableOutput("nb_na") 
                    #,textOutput("nb_na")
              )
@@ -84,12 +84,15 @@ server <- function(input, output, session){
   data_annee<-reactive(
     return(annee)
   )
+  
   output$annee <- renderDataTable({data_annee()})
- 
+  
   #---- Button to select/deselect all the stations/parametres
-  observeEvent(input$allStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE), selected =levels(annee$NOM_SITE) )})
+  #---- For stations
+  observeEvent(input$allStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE), selected = levels(annee$NOM_SITE) )})
   observeEvent(input$noStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE))})
-   
+  
+  #---- For parametres
   observeEvent(input$allParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1), selected = tail(colnames(annee),-1))})
   observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1))})
   
@@ -101,47 +104,30 @@ server <- function(input, output, session){
     {return(input$parametres)}
   )
   
- 
-  # na<-renderTable(
-  #   if(is.null(input$choix_stations)){
-  #     print("Entrer au moins une station")
-  #   } else if(is.null(input$choix_parametres) || input$parametres<2){
-  #     print("Entrer au moins deux paramètres")
-  #   }
-  # )
   
-  output$stations <- output$stations2 <- output$stations3 <-renderText({choix_stations()}) # fonction pour afficher les stations sélectionnées
-  output$parametres <- output$parametres2 <- output$parametres3 <- renderText({choix_parametres()}) # fonction pour afficher les paramètres sélectionnés
-
+  output$stations <- renderText({choix_stations()}) # fonction pour afficher les stations sélectionnées
+  output$parametres  <- renderText({choix_parametres()}) # fonction pour afficher les paramètres sélectionnés
+  
+  #---- data for the dataframe of NA
+  new_data_with_station<-reactive(
+    subset(data_annee(), NOM_SITE %in% choix_stations(), select = c(choix_parametres(),"NOM_SITE"))
+  )
+  
+  #--- Calculus of the number of NA by col and creation of the dataframe
+  nb_na<-reactive(
+    #----- if stations and parametres are selected
+    if(length(choix_parametres())>=1 && length(choix_stations())>=1){
+      na<-aggregate(new_data_with_station(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
+      return(na)
+    }
+  )
+  output$nb_na<- renderDataTable(nb_na())
+  
   #--- data with parameters setted by user
   new_data<-reactive(
     subset(data_annee(), NOM_SITE %in% choix_stations(), select = choix_parametres())
   )
   output$new_data<-renderDataTable(new_data())
-
-  #--- Calculus of the number of NA by col
-  nb_na<-reactive(
-    #----- if stations and parametres are selected
-    if(length(choix_parametres())>=1 && length(choix_stations())>=1){
-      na<-apply(new_data(), 2, function(x) sum(is.na(x)))
-      df<-t(data.frame(na))
-      rownames<-(choix_stations())
-    return(df)
-    }
-
-  #   #--- if no stations and no parametres selected
-  #   else if(length(choix_parametres())<1 && length(choix_stations())<1){
-  #     "Sélectionner un nombre de paramètres et/ou de stations cohérent"
-  #   }
-  #   #----- if no parameter selected
-  #   else if (length(choix_parametres())<1){
-  #     "Sélectionner au moins 1 paramètres"}
-  #   #---- if no stations selected
-  #   else{
-  #     "Sélectionner au moins 1 stations"}
-  )
-  
-  output$nb_na<- renderDataTable(nb_na())
   
   #--- data whitout NA
   data_sans_na<-reactive(
@@ -169,9 +155,6 @@ server <- function(input, output, session){
     
   )
   output$ifm<-renderPlot(ifm())
-  
-  
-  
-}
+} 
 
 shinyApp(ui = ui, server = server)
