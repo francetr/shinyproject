@@ -28,10 +28,13 @@ shinyUI( navbarPage(
                     h2("Choix des stations et paramètres"),
                     #----- Stations choices
                     column(4, helpText("Au moins une station doit être sélectionnée"),
-                           checkboxGroupInput(inputId = "stations", label = h4("Choix des stations"), choices=levels(annee$NOM_SITE)
+                          
+                           checkboxGroupInput(inputId = "stations", label = h4("Choix des stations")
+                                              ,choices=levels(annee$NOM_SITE)
                                               #,select=levels(annee$NOM_SITE)
-                           )
-                           , hr(), p("Vous avez sélectionné les stations : "), verbatimTextOutput("stations")
+                           ), actionButton(inputId = "allStations", label = "Select all")
+                           , actionButton(inputId = "noStations", label = "Deselect all")
+                           , p("Vous avez sélectionné les stations : "), hr() , verbatimTextOutput("stations")
                            
                     ),
                     #----- Stations vizualisation in map
@@ -43,6 +46,8 @@ shinyUI( navbarPage(
                            checkboxGroupInput(inputId = "parametres", label = h4("Choix des paramètres"), choices = tail(colnames(annee),-1)
                                               #,select = tail(colnames(annee),-1)
                            ) # tail permet d'enlever un paramètre inutile (le nom du site)
+                           , actionButton(inputId = "allParametres", label = "Select all")
+                           , actionButton(inputId = "noParametres", label = "Deselect all")
                            , p("Vous avez sélectionné les paramètres suivants : "), hr(), verbatimTextOutput("parametres")
                     ),
                     #---- Data displays according the parametres selected by user
@@ -75,6 +80,6 @@ shinyUI( navbarPage(
              column(12
              )
            )
-    )
   )
+)
 )

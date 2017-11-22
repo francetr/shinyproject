@@ -15,12 +15,21 @@ annee<-read.csv("bdd_annee_somlit.csv", header = T,  dec = ".")
 
 
 #--------- Server part
-shinyServer ( function(input, output){
+shinyServer ( function(input, output, session){
   #--- Display raw data
   data_annee<-reactive(
     return(annee)
   )
+  
   output$annee <- renderDataTable({data_annee()})
+  
+  #---- Button to select/deselect all the stations/parametres
+  observeEvent(input$allStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE), selected = levels(annee$NOM_SITE) )})
+  observeEvent(input$noStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE))})
+  
+  observeEvent(input$allParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1), selected = tail(colnames(annee),-1))})
+  observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1))})
+  
   
   choix_stations<-reactive(
     {return(input$stations)}
@@ -28,14 +37,7 @@ shinyServer ( function(input, output){
   choix_parametres<-reactive(
     {return(input$parametres)}
   )
-  
-  # na<-renderTable(
-  #   if(is.null(input$choix_stations)){
-  #     print("Entrer au moins une station")
-  #   } else if(is.null(input$choix_parametres) || input$parametres<2){
-  #     print("Entrer au moins deux paramètres")
-  #   }
-  # )
+
   
   output$stations <- output$stations2 <- output$stations3 <-renderText({choix_stations()}) # fonction pour afficher les stations sélectionnées
   output$parametres <- output$parametres2 <- output$parametres3 <- renderText({choix_parametres()}) # fonction pour afficher les paramètres sélectionnés
@@ -96,6 +98,6 @@ shinyServer ( function(input, output){
     
   )
   output$ifm<-renderPlot(ifm())
-
-  }
+  
+}
 )

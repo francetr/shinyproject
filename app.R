@@ -24,10 +24,12 @@ ui <- navbarPage(
              h2("Choix des stations et paramètres"),
              #----- Stations choices
              column(4, helpText("Au moins une station doit être sélectionnée"),
-                    checkboxGroupInput(inputId = "stations", label = h4("Choix des stations"), choices=levels(annee$NOM_SITE)
+                    checkboxGroupInput(inputId = "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE)
                                        #,select=levels(annee$NOM_SITE)
                                        )
-                    , hr(), p("Vous avez sélectionné les stations : "), verbatimTextOutput("stations")
+                    , actionButton(inputId = "allStations", label = "Select all")
+                    , actionButton(inputId = "noStations", label = "Deselect all")
+                    , p("Vous avez sélectionné les stations : "), hr(), verbatimTextOutput("stations")
 
              ),
              #----- Stations vizualisation in map
@@ -39,6 +41,8 @@ ui <- navbarPage(
                     checkboxGroupInput(inputId = "parametres", label = h4("Choix des paramètres"), choices = tail(colnames(annee),-1)
                                        #,select = tail(colnames(annee),-1)
                                        ) # tail permet d'enlever un paramètre inutile (le nom du site)
+                    , actionButton(inputId = "allParametres", label = "Select all")
+                    , actionButton(inputId = "noParametres", label = "Deselect all")
                     , p("Vous avez sélectionné les paramètres suivants : "), hr(), verbatimTextOutput("parametres")
              ),
              #---- Data displays according the parametres selected by user
@@ -53,16 +57,16 @@ ui <- navbarPage(
   tabPanel("ACP",
            fluidRow(
              h2("Analyse multivariée"),
-             column(4, 
+             column(4,
                     plotOutput("vfm")),
-             column(4, 
+             column(4,
                     plotOutput("ifm")),
-             column(4, 
+             column(4,
                     plotOutput("ebouli"))
-             
+
            )
   ),
-  
+
   
   #------- Panel containing the graphic representations
   tabPanel("Représentations",
@@ -75,12 +79,20 @@ ui <- navbarPage(
 )
 
 #--------- Server part
-server <- function(input, output){
+server <- function(input, output, session){
   #--- Display raw data
   data_annee<-reactive(
     return(annee)
   )
   output$annee <- renderDataTable({data_annee()})
+ 
+  #---- Button to select/deselect all the stations/parametres
+  observeEvent(input$allStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE), selected =levels(annee$NOM_SITE) )})
+  observeEvent(input$noStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE))})
+   
+  observeEvent(input$allParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1), selected = tail(colnames(annee),-1))})
+  observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1))})
+  
   
   choix_stations<-reactive(
     {return(input$stations)}
@@ -88,7 +100,8 @@ server <- function(input, output){
   choix_parametres<-reactive(
     {return(input$parametres)}
   )
-
+  
+ 
   # na<-renderTable(
   #   if(is.null(input$choix_stations)){
   #     print("Entrer au moins une station")
@@ -110,8 +123,9 @@ server <- function(input, output){
   nb_na<-reactive(
     #----- if stations and parametres are selected
     if(length(choix_parametres())>=1 && length(choix_stations())>=1){
-      na<-apply(new_data(),2,function(x) sum(is.na(x)))
+      na<-apply(new_data(), 2, function(x) sum(is.na(x)))
       df<-t(data.frame(na))
+      rownames<-(choix_stations())
     return(df)
     }
 
