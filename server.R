@@ -10,7 +10,7 @@ library(FactoMineR)
 library(lattice)
 
 setwd("~/Bureau/m2/s3/stat/project/script")
-mois<-read.csv("bdd_mois_somlit.csv", header = T,  dec = ".")
+# mois<-read.csv("bdd_mois_somlit.csv", header = T,  dec = ".")
 annee<-read.csv("bdd_annee_somlit.csv", header = T,  dec = ".")
 
 
@@ -32,6 +32,18 @@ shinyServer ( function(input, output, session){
   observeEvent(input$allParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1), selected = tail(colnames(annee),-1))})
   observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1))})
   
+  #---- Reactive objects of the date/stations/parametres selected by user
+  # TODO
+  output$date_start<-renderText(as.character(min(annee$Annee)))
+  output$date_end<-renderText(as.character(max(annee$Annee)))
+
+  
+  choix_date<-reactive(
+    {return(input$date)}
+  )
+  
+  
+  
   
   choix_stations<-reactive(
     {return(input$stations)}
@@ -40,11 +52,11 @@ shinyServer ( function(input, output, session){
     {return(input$parametres)}
   )
 
-  
+  #---- Display the stations/parametres selected by user
   output$stations <- renderText({choix_stations()}) # fonction pour afficher les stations sélectionnées
   output$parametres  <- renderText({choix_parametres()}) # fonction pour afficher les paramètres sélectionnés
   
-  #---- data for the dataframe of NA
+  #---- data for the dataframe of NA(with the name of the stations)
   new_data_with_station<-reactive(
     subset(data_annee(), NOM_SITE %in% choix_stations(), select = c(choix_parametres(),"NOM_SITE"))
   )
@@ -53,15 +65,16 @@ shinyServer ( function(input, output, session){
   nb_na<-reactive(
     #----- if stations and parametres are selected
     if(length(choix_parametres())>=1 && length(choix_stations())>=1){
-       na<-aggregate(new_data_with_station(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
+      na<-aggregate(new_data(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
+      colnames(na)<-c("NOM_SITE", choix_parametres()) # change the name of the first column
       return(na)
     }
   )
   output$nb_na<- renderDataTable(nb_na())
   
-  #--- data with parameters setted by user
+  #--- data with parameters setted by user(don't contain the stations's name)
   new_data<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations(), select = choix_parametres())
+    subset(new_data_with_station(), NOM_SITE %in% choix_stations(), select = choix_parametres())
   )
   output$new_data<-renderDataTable(new_data())
   
