@@ -39,13 +39,12 @@ ui <- navbarPage(
                     #---- TODO
                     , dateRangeInput(inputId = "date", label = "Choix de la date", startview = "devade")
                     , checkboxGroupInput(inputId = "parametres", label = ("Choix des paramètres"), choices = tail(colnames(annee),-2)) # tail permet d'enlever un paramètre inutile (le nom du site et annee)
-                    #----
                     , actionButton(inputId = "allParametres", label = "Select all")
                     , actionButton(inputId = "noParametres", label = "Deselect all")
                     , p("Vous avez sélectionné les paramètres suivants : "), hr(), verbatimTextOutput("parametres")
              ),
              #---- Data displays according the parametres selected by user
-            column(12, h2("Calcul du nombre de NA pour les stations et paramètres sélectionnés"), helpText("Attention suivant le nombre de NA pour un pramètre donné, l'analyse peut être fortement biaisée")
+            column(12, h3("Calcul du nombre de NA pour les stations et paramètres sélectionnés"), helpText("Attention suivant le nombre de NA pour un pramètre donné, l'analyse peut être fortement biaisée")
                    ,dataTableOutput("nb_na")
              )
          )
@@ -123,7 +122,7 @@ server <- function(input, output, session){
   nb_na<-reactive(
     #----- if stations and parametres are selected
     if(length(choix_parametres())>=1 && length(choix_stations())>=1){
-      na<-aggregate(new_data_with_station(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
+      na<-aggregate(new_data(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
       colnames(na)<-c("NOM_SITE", choix_parametres()) # change the name of the first column
       return(na)
     }
