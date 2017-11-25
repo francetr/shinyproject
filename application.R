@@ -10,7 +10,7 @@ annee<-read.csv("bdd_annee_somlit.csv", header = T,  dec = ".")
 ui <- navbarPage(
   # App title ----
   ("MySomlit"),  windowTitle="mySomlit", fluid =TRUE,
-
+  
   #--- Visualisation of the data
   # tabPanel("Table des données",
   #   dataTableOutput("annee")
@@ -18,69 +18,71 @@ ui <- navbarPage(
 
   # First column choices of parameters, stations and geographic representaion
   tabPanel("Choix des données",
-    fluidRow(
-      #-------- Stations and parametres choices
-      column(12,
-             h2("Choix des stations et paramètres"),
-             #----- Stations choices
-             column(4, helpText("Au moins une station doit être sélectionnée")
-                    , checkboxGroupInput(inputId = "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE))
-                    , actionButton(inputId = "allStations", label = "Select all")
-                    , actionButton(inputId = "noStations", label = "Deselect all")
-                    , p("Vous avez sélectionné les stations : "), hr(), verbatimTextOutput("stations")
-
-             ),
-             #----- Stations vizualisation in map
-             column(4,
-                    h3("Représentation géographique des stations sélectionnées")
-             ),
-             #----- Parametres choices
-             column(4, helpText("Deux paramètres doivent être sélectionnés")
-                    #---- TODO
-                    , dateRangeInput(inputId = "date", label = "Choix de la date", startview = "devade")
-                    , checkboxGroupInput(inputId = "parametres", label = ("Choix des paramètres"), choices = tail(colnames(annee),-2)) # tail permet d'enlever un paramètre inutile (le nom du site et annee)
-                    , actionButton(inputId = "allParametres", label = "Select all")
+           fluidRow(
+             #-------- Stations and parametres choices
+             column(12,
+                    h2("Choix des stations et paramètres"),
+                    #----- Stations choices
+                    column(4, helpText("Au moins une station doit être sélectionnée")
+                           , checkboxGroupInput(inputId = "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE))
+                           , actionButton(inputId = "allStations", label = "Select all")
+                           , actionButton(inputId = "noStations", label = "Deselect all")
+                           , p("Vous avez sélectionné les stations : "), hr(), verbatimTextOutput("stations")
+                           ),
+                    #----- Stations vizualisation in map
+                    column(4,
+                           h3("Représentation géographique des stations sélectionnées")
+                           ),
+                    #----- Parametres choices
+                    column(4, strong("Années disponibles pour l'étude :"), textOutput("date_range")
+                           #---- TODO
+                           , dateRangeInput(inputId = "date", label = "Choix de la date", startview = "year", start = "1997-01-01" )
+                           , helpText("Deux paramètres doivent être sélectionnés")
+                           , checkboxGroupInput(inputId = "parametres", label = ("Choix des paramètres"), choices = tail(colnames(annee),-2)) # tail permet d'enlever un paramètre inutile (le nom du site et annee)
+                           , actionButton(inputId = "allParametres", label = "Select all")
                     , actionButton(inputId = "noParametres", label = "Deselect all")
                     , p("Vous avez sélectionné les paramètres suivants : "), hr(), verbatimTextOutput("parametres")
-             ),
-             #---- Data displays according the parametres selected by user
-            column(12, h3("Calcul du nombre de NA pour les stations et paramètres sélectionnés"), helpText("Attention suivant le nombre de NA pour un pramètre donné, l'analyse peut être fortement biaisée")
-                   ,dataTableOutput("nb_na")
+                    ),
+                    #---- Data displays according the parametres selected by user
+                    column(12, h3("Calcul du nombre de NA pour les stations et paramètres sélectionnés"), helpText("Attention suivant le nombre de NA pour un pramètre donné, l'analyse peut être fortement biaisée")
+                           ,dataTableOutput("nb_na")
+                           )
+                    )
              )
-         )
-      )
-    ),
+           ),
   #------- Panel containing the ACP (use conditionnal panel?)
   tabPanel("ACP",
-           fluidRow(
-             h2("Analyse multivariée"),
-             column(4,
-                    plotOutput("vfm")),
-             column(4,
-                    plotOutput("ifm")),
-             column(4,
-                    plotOutput("ebouli"))
-
-           )
-  ),
-
+           column(12,
+                  fluidRow(
+                    h2("Analyse multivariée"),
+                    column(4,
+                           plotOutput("vfm")),
+                    column(4,
+                           plotOutput("ifm")),
+                    column(4,
+                           plotOutput("ebouli"))
+                    )
+                  )
+           ),
   
   #------- Panel containing the graphic representations
   tabPanel("Représentations",
-           fluidRow(
-             h2("Représentations graphiques"),
-             column(12
-             )
+           column(12,
+                  fluidRow(
+                    h2("Représentations graphiques"),
+                    column(12
+                           )
+                    )
+                  )
            )
   )
-)
 
 #--------- Server part
 server <- function(input, output, session){
   #--- Display raw data
   data_annee<-reactive(
     return(annee)
-  )
+    )
   
   output$annee <- renderDataTable({data_annee()})
   
@@ -93,7 +95,7 @@ server <- function(input, output, session){
   observeEvent(input$allParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1), selected = tail(colnames(annee),-1))})
   observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1))})
   
-  #---- Reactive objects of the date/stations/parametres selected by user
+  #---- Reactive objects of the stations/parametres selected by user
   
   choix_stations<-reactive(
     {return(input$stations)}
@@ -102,13 +104,15 @@ server <- function(input, output, session){
     {return(input$parametres)}
   )
   
-  #---- Reactive objects of the date/stations/parametres selected by user
+  #---- Reactive objects of the date selected by user
   # TODO
+  output$date_range<-renderText(as.character(c(min(annee$Annee), "à", max(annee$Annee))))
+
   choix_date<-reactive(
     {return(input$date)}
   )
-  
-  output$choix_date<-renderPrint(choix_date())
+  output$date_start<-renderText(date_start())
+
   
   output$stations <- renderText({choix_stations()}) # fonction pour afficher les stations sélectionnées
   output$parametres  <- renderText({choix_parametres()}) # fonction pour afficher les paramètres sélectionnés
@@ -125,9 +129,9 @@ server <- function(input, output, session){
       na<-aggregate(new_data(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
       colnames(na)<-c("NOM_SITE", choix_parametres()) # change the name of the first column
       return(na)
-    }
+      }
   )
-  output$nb_na<- renderDataTable(nb_na())
+  output$nb_na<-renderDataTable(nb_na())
   
   #--- data with parameters setted by user
   new_data<-reactive(
@@ -143,21 +147,25 @@ server <- function(input, output, session){
   
   #--- ACP result
   
+  acp<-reactive(
+    PCA(scale(data_sans_na()), graph=FALSE))
+  
   vfm<-reactive(
-    PCA(scale(data_sans_na())))
+    plot(acp(), choix="var",axes = c(1,2))
+  )
   output$vfm<-renderPlot(vfm())
   
   #--- ebouli
   
   ebouli<-reactive(
-    barplot(vfm()$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres")
+    barplot(acp()$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres")
   )
   output$ebouli<-renderPlot(ebouli())
   
   #--- individual factor map
   
   ifm<-reactive(
-    plot(vfm(),choix="ind",axes= c(1,2))
+    plot(acp(),choix="ind",axes= c(1,2))
     
   )
   output$ifm<-renderPlot(ifm())
