@@ -24,7 +24,7 @@ ui <- navbarPage(
                     h2("Choix des stations et paramètres"),
                     #----- Stations choices
                     column(4, helpText("Au moins une station doit être sélectionnée")
-                           , checkboxGroupInput(inputId = "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE))
+                           , uiOutput("stations_checkbox")
                            , actionButton(inputId = "allStations", label = "Select all")
                            , actionButton(inputId = "noStations", label = "Deselect all")
                            , p("Vous avez sélectionné les stations : "), hr(), verbatimTextOutput("stations")
@@ -38,10 +38,10 @@ ui <- navbarPage(
                            #---- TODO
                            , dateRangeInput(inputId = "date", label = "Choix de la date", startview = "year", start = "1997-01-01" )
                            , helpText("Deux paramètres doivent être sélectionnés")
-                           , checkboxGroupInput(inputId = "parametres", label = ("Choix des paramètres"), choices = tail(colnames(annee),-2)) # tail permet d'enlever un paramètre inutile (le nom du site et annee)
+                           , uiOutput("parametres_checkbox")
                            , actionButton(inputId = "allParametres", label = "Select all")
-                    , actionButton(inputId = "noParametres", label = "Deselect all")
-                    , p("Vous avez sélectionné les paramètres suivants : "), hr(), verbatimTextOutput("parametres")
+                           , actionButton(inputId = "noParametres", label = "Deselect all")
+                           , p("Vous avez sélectionné les paramètres suivants : "), hr(), verbatimTextOutput("parametres")
                     ),
                     #---- Data displays according the parametres selected by user
                     column(12, h3("Calcul du nombre de NA pour les stations et paramètres sélectionnés"), helpText("Attention suivant le nombre de NA pour un pramètre donné, l'analyse peut être fortement biaisée")
@@ -86,6 +86,10 @@ server <- function(input, output, session){
   
   output$annee <- renderDataTable({data_annee()})
   
+  #---- Definition of the checkbox group that will be displayed in UI
+  output$stations_checkbox <- renderUI(checkboxGroupInput(inputId = "stations", label = "Choix des stations", choices = levels(annee$NOM_SITE)))
+  output$parametres_checkbox <- renderUI(checkboxGroupInput(inputId = "parametres", label = ("Choix des paramètres"), choices = tail(colnames(annee),-2)))
+  
   #---- Button to select/deselect all the stations/parametres
   #---- For stations
   observeEvent(input$allStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE), selected = levels(annee$NOM_SITE) )})
@@ -111,7 +115,7 @@ server <- function(input, output, session){
   choix_date<-reactive(
     {return(input$date)}
   )
-  output$date_start<-renderText(date_start())
+  # output$date_start<-renderText(date_start())
 
   
   output$stations <- renderText({choix_stations()}) # fonction pour afficher les stations sélectionnées

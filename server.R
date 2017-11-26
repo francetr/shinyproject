@@ -23,6 +23,11 @@ shinyServer ( function(input, output, session){
   
   output$annee <- renderDataTable({data_annee()})
   
+  #---- Definition of the checkbox group that will be displayed in UI
+  output$stations_checkbox <- renderUI(checkboxGroupInput(inputId = "stations", label = "Choix des stations", choices = levels(annee$NOM_SITE)))
+  output$parametres_checkbox <- renderUI(checkboxGroupInput(inputId = "parametres", label = ("Choix des paramètres"), choices = tail(colnames(annee),-2)))
+  
+  
   #---- Button to select/deselect all the stations/parametres
   #---- For stations
   observeEvent(input$allStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE), selected = levels(annee$NOM_SITE) )})
@@ -36,7 +41,7 @@ shinyServer ( function(input, output, session){
   # TODO
   output$date_start<-renderText(as.character(min(annee$Annee)))
   output$date_end<-renderText(as.character(max(annee$Annee)))
-
+  output$date_range<-renderText(as.character(c(min(annee$Annee), " à ", max(annee$Annee))))
   
   choix_date<-reactive(
     {return(input$date)}
