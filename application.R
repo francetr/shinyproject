@@ -36,13 +36,13 @@ ui <- navbarPage(
                     #----- Parametres choices
                     column(4, strong("Années disponibles pour l'étude :"), textOutput("date_range")
                            #---- TODO
-                           , dateRangeInput(inputId = "date", label = "Choix de la date", startview = "year", start = "1997-01-01" )
+                           , uiOutput("date")
                            , helpText("Deux paramètres doivent être sélectionnés")
                            , uiOutput("parametres_checkbox")
                            , actionButton(inputId = "allParametres", label = "Select all")
                            , actionButton(inputId = "noParametres", label = "Deselect all")
                            , p("Vous avez sélectionné les paramètres suivants : "), hr(), verbatimTextOutput("parametres")
-                    ),
+                           ),
                     #---- Data displays according the parametres selected by user
                     column(12, h3("Calcul du nombre de NA pour les stations et paramètres sélectionnés"), helpText("Attention suivant le nombre de NA pour un pramètre donné, l'analyse peut être fortement biaisée")
                            ,dataTableOutput("nb_na")
@@ -108,44 +108,57 @@ server <- function(input, output, session){
     {return(input$parametres)}
   )
   
-  #---- Reactive objects of the date selected by user
-  # TODO
-  output$date_range<-renderText(as.character(c(min(annee$Annee), "à", max(annee$Annee))))
-
-  choix_date<-reactive(
-    {return(input$date)}
-  )
-  # output$date_start<-renderText(date_start())
-
+  output$stations <- renderText({choix_stations()}) # display the selected stations
+  output$parametres  <- renderText({choix_parametres()}) # display the selected parametres
   
-  output$stations <- renderText({choix_stations()}) # fonction pour afficher les stations sélectionnées
-  output$parametres  <- renderText({choix_parametres()}) # fonction pour afficher les paramètres sélectionnés
-  #---
-  #---- data for the dataframe of NA
-  new_data_with_station<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations(), select = c(choix_parametres(),"NOM_SITE"))
+  #---- Reactive objects of the date selected by user
+  # TODO adapt the case where user select date start > date end
+  annee_min<-reactive(
+    return(as.character(min(annee$Annee)))
+           )
+  
+  annee_max<-reactive(
+    return(as.character(max(annee$Annee)))
   )
+  
+  # Display the date range of available data 
+  output$date_range <- renderText(paste("De", annee_min(), "à" , annee_max(), sep = " "))
+  
+  output$date<-renderUI(dateRangeInput(inputId = "date", label = "Choix de la date", startview = "year", format = "dd-mm-yyyy"
+                                       , start = paste(min(annee$Annee), "01-01", sep = "-"), min= paste(min(annee$Annee), "01-01", sep = "-")
+                                       , end = paste(max(annee$Annee), "12-31", sep = "-"), paste(max(annee$Annee), "12-31", sep = "-")))
+  choix_date_start<-reactive(
+    return(as.character(input$date[1]))
+  )
+  choix_date_end<-reactive(
+    return(as.character(input$date[2]))
+  )
+  
+  #---- data used for the construction of the dataframe of NA in the range of the chosen date
+  new_data_with_station<-reactive(
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = c(choix_parametres(),"NOM_SITE"))
+  )
+  
+  #--- data with parameters setted by user in the date range selected
+  new_data<-reactive(
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = choix_parametres())
+  )
+  output$new_data<-renderDataTable(new_data())
   
   #--- Calculus of the number of NA by col and creation of the dataframe
   nb_na<-reactive(
-    #----- if stations and parametres are selected
-    if(length(choix_parametres())>=1 && length(choix_stations())>=1){
-      na<-aggregate(new_data(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
-      colnames(na)<-c("NOM_SITE", choix_parametres()) # change the name of the first column
-      return(na)
+    #----- if data is not null (nrow(new_data())) stations(length(choix_stations)) and parametres(length(choix_parametres)) are selected
+    if(length(choix_parametres())>=1 & length(choix_stations())>=1 & nrow(new_data()) > 0){
+        na<-aggregate(new_data(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
+        colnames(na)<-c("NOM_SITE", choix_parametres()) # change the name of the first column
+        return(na)
       }
   )
   output$nb_na<-renderDataTable(nb_na())
   
-  #--- data with parameters setted by user
-  new_data<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations(), select = choix_parametres())
-  )
-  output$new_data<-renderDataTable(new_data())
-  
-  #--- data whitout NA
+  #--- data whitout NA n the date range selected
   data_sans_na<-reactive(
-    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations(), select = choix_parametres()))
+    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = choix_parametres()))
   )
   output$data_sans_na<-renderDataTable(data_sans_na())
   

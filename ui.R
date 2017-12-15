@@ -30,7 +30,7 @@ shinyUI( navbarPage(
                            , actionButton(inputId = "allStations", label = "Select all")
                            , actionButton(inputId = "noStations", label = "Deselect all")
                            , p("Vous avez sélectionné les stations : "), hr(), verbatimTextOutput("stations")
-                           ),
+                    ),
                     #----- Stations vizualisation in map
                     column(4,
                            h3("Représentation géographique des stations sélectionnées")
@@ -38,7 +38,7 @@ shinyUI( navbarPage(
                     #----- Parametres choices
                     column(4, strong("Années disponibles pour l'étude :"), textOutput("date_range")
                            #---- TODO
-                           , dateRangeInput(inputId = "date", label = "Choix de la date", startview = "year", start = "1997-01-01" )
+                           , uiOutput("date")
                            , helpText("Deux paramètres doivent être sélectionnés")
                            , uiOutput("parametres_checkbox")
                            , actionButton(inputId = "allParametres", label = "Select all")
@@ -48,10 +48,10 @@ shinyUI( navbarPage(
                     #---- Data displays according the parametres selected by user
                     column(12, h3("Calcul du nombre de NA pour les stations et paramètres sélectionnés"), helpText("Attention suivant le nombre de NA pour un pramètre donné, l'analyse peut être fortement biaisée")
                            ,dataTableOutput("nb_na")
-                           )
                     )
              )
-           ),
+           )
+  ),
   #------- Panel containing the ACP (use conditionnal panel?)
   tabPanel("ACP",
            column(12,
@@ -63,17 +63,20 @@ shinyUI( navbarPage(
                            plotOutput("ifm")),
                     column(4,
                            plotOutput("ebouli"))
-                    )
                   )
-           ),
+           )
+  ),
+  
   #------- Panel containing the graphic representations
   tabPanel("Représentations",
            column(12,
                   fluidRow(
                     h2("Représentations graphiques"),
-                    column(12)
+                    column(12
                     )
                   )
            )
   )
+)
+  
 )
