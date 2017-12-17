@@ -12,7 +12,6 @@ setwd("~/Bureau/m2/s3/stat/project/script/")
 
 mois<-read.csv("bdd_mois_somlit.csv", header = T,  dec = ".")
 annee<-read.csv("bdd_annee_somlit.csv", header = T,  dec = ".")
-
 #############
 # Traitement des données pour l'Analyse multivariée ACP
 #############
@@ -20,9 +19,8 @@ str(annee)
 summary(annee)
 
 # exemple d'ACP pour Antioche et Eyrac pour paramètre pH, température, Sallinité et Oxygene 
-
 # choix des paramètres(select) et de l'année/site
-data0<-subset(annee, NOM_SITE=="Antioche" | NOM_SITE=="Eyrac", select = c("pH","Temperature", "Salinite", "Oxygene", "DN15", "DC13", "CN"))
+data0<-subset(annee, NOM_SITE=="Antioche" | NOM_SITE=="Eyrac" , select = c("pH","Temperature", "Salinite", "Oxygene", "DN15", "DC13", "CN"))
 
 data<-subset(annee, NOM_SITE=="Antioche" | NOM_SITE=="Eyrac", select = c("Annee","NOM_SITE","pH","Temperature", "Salinite", "Oxygene", "DN15", "DC13", "CN")) # utile pour la représentation graphique
 
@@ -33,15 +31,52 @@ c("Il y a", nb_na,"NA")
 nom_col<-as.data.frame(colnames(data0))
 nom_col<-t(nom_col) # transposition du dataframe pour avoir le nombre de lignes et colonnes souhaité
 
-na_df<-data.frame(nom_col) # Création d'un dataframe à partir du nom de colonnes
-rownames(na_df)<-"NA"
-dim(na_df)
-for (i in seq(from = 1, to = length(colnames(data0)), by = 1)) {
-  na_df[i]<-sum(is.na(data0[,i])); # ajout valeur NA pour chaque colonne
+?dateRangeInput
+na<-aggregate(data0, list(data$NOM_SITE), function(x) sum(is.na(x)))
+
+date="2017-01-01"
+min(annee$Annee)
+if(min(annee$Annee)<"2016-01-01"){
+  print("ok")
 }
+date=as.integer(date)
+paste(1996, "01-01", sep="-")
+?dateRangeInput
+typeof((levels(annee$NOM_SITE)))
+as.Date(as.character(min(annee$NOM_SITE)))
+
+na
+min(annee$Annee)
+year<-as.character(min(annee$Annee)) 
+max(annee$Annee)
+sapply(annee , function(x) sum(is.na(x)))
+
+sum(is.na(annee[which(annee$NOM_SITE=="Astan"), which(ncol(annee)=="Temperature")]))
+tab<-apply(data0, 2, function(x) is.na(x))
+
+tab<-subset(annee, annee$NOM_SITE == "Astan",select = c("NOM_SITE", "Temperature"))
+apply(tab, 2, function(x) sum(is.na(x)))
+
+#----- Calcul de NA pour chaque site
+na<-NULL
+for (station in data$NOM_SITE) {
+  if (station=="Antioche"){
+    na<-(apply(subset(data, NOM_SITE==station), 2, function(x) sum(is.na(x))))
+  }
+}
+t(data.frame(na))
+colnames(annee)
+
+which(annee$NOM_SITE=="Astan")
+which(levels(annee)=="Temperature")
+
+
+annee[which(annee$NOM_SITE=="Astan"),which(ncol(annee)=="Temperature")]
+apply(tab, 2, function(x) sum(x))
+
+na_df<-sapply(data0, function(x) sum(is.na(x)), simplify = "array")
 na_df
-colnames(na_df)<-c(nom_col[1], nom_col[2], nom_col[3], nom_col[4], nom_col[5], nom_col[6], nom_col[7])
-na_df
+?dateRangeInput
 
 
 data0bis<-na.omit(data0)
@@ -58,9 +93,9 @@ databis<-na.omit(data)
 #############
 # Réalisation de l'ACP
 #############
-
 library(FactoMineR)
 ACP<-PCA(scale(data0bis), scale.unit = TRUE, graph= FALSE)
+ACP
 round(ACP$eig,2)
 barplot(ACP$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres")
 100/ncol(data) #contrib min

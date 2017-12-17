@@ -101,10 +101,10 @@ server <- function(input, output, session){
   
   #---- Reactive objects of the stations/parametres selected by user
   
-  choix_stations<-reactive(
+  choix_stations<-choix_stations2<-reactive(
     {return(input$stations)}
   )
-  choix_parametres<-reactive(
+  choix_parametres<-choix_parametres2<-reactive(
     {return(input$parametres)}
   )
   
@@ -136,18 +136,18 @@ server <- function(input, output, session){
   
   #---- data used for the construction of the dataframe of NA in the range of the chosen date
   new_data_with_station<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = c(choix_parametres(),"NOM_SITE"))
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < choix_date_end() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = c(choix_parametres(),"NOM_SITE"))
   )
   
   #--- data with parameters setted by user in the date range selected
   new_data<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = choix_parametres())
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < choix_date_end() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = choix_parametres())
   )
   output$new_data<-renderDataTable(new_data())
   
   #--- Calculus of the number of NA by col and creation of the dataframe
   nb_na<-reactive(
-    #----- if data is not null (nrow(new_data())) stations(length(choix_stations)) and parametres(length(choix_parametres)) are selected
+    #----- if data selected is not null (nrow(new_data())) stations(length(choix_stations)) and parametres(length(choix_parametres)) are selected
     if(length(choix_parametres())>=1 & length(choix_stations())>=1 & nrow(new_data()) > 0){
         na<-aggregate(new_data(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
         colnames(na)<-c("NOM_SITE", choix_parametres()) # change the name of the first column
@@ -158,14 +158,15 @@ server <- function(input, output, session){
   
   #--- data whitout NA n the date range selected
   data_sans_na<-reactive(
-    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = choix_parametres()))
+    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() < choix_date_end() & choix_date_start() < data_annee()$Annee & choix_date_end() > data_annee()$Annee, select = choix_parametres()))
   )
   output$data_sans_na<-renderDataTable(data_sans_na())
   
   #--- ACP result
   
   acp<-reactive(
-    PCA(scale(data_sans_na()), graph=FALSE))
+      PCA(scale(data_sans_na()), graph=FALSE)
+    )
   
   vfm<-reactive(
     plot(acp(), choix="var",axes = c(1,2))
