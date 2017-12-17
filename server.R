@@ -17,9 +17,10 @@ annee<-read.csv("bdd_annee_somlit.csv", header = T,  dec = ".")
 #--------- Server part
 shinyServer ( function(input, output, session){
   #--- Display raw data
-  data_annee<-reactive(
-    return(annee)
-  )
+  data_annee<-reactive({
+    # annee$Annee<-as.Date(as.character(paste(annee$Annee, "01-01", sep = "-")))
+    return (annee)
+  })
   
   output$annee <- renderDataTable({data_annee()})
   
@@ -37,11 +38,10 @@ shinyServer ( function(input, output, session){
   observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1))})
   
   #---- Reactive objects of the stations/parametres selected by user
-  
-  choix_stations<-reactive(
+  choix_stations<-choix_stations2<-reactive(
     {return(input$stations)}
   )
-  choix_parametres<-reactive(
+  choix_parametres<-choix_parametres2<-reactive(
     {return(input$parametres)}
   )
   
@@ -49,24 +49,22 @@ shinyServer ( function(input, output, session){
   output$parametres  <- renderText({choix_parametres()}) # display the selected parametres
   
   #---- Reactive objects of the date selected by user
-  # TODO adapt the case where user select date start > date end
   annee_min<-reactive(
-    return(as.character(min(annee$Annee)))
+    return(paste(min(annee$Annee), "01-01", sep = "-"))
   )
-  
   annee_max<-reactive(
-    return(as.character(max(annee$Annee)))
+    return(paste(max(annee$Annee), "12-31", sep = "-"))
   )
   
   # Display the date range of available data 
   output$date_range <- renderText(paste("De", annee_min(), "à" , annee_max(), sep = " "))
   
   output$date<-renderUI(dateRangeInput(inputId = "date", label = "Choix de la date", startview = "year", format = "dd-mm-yyyy"
-                                       , start = paste(min(annee$Annee), "01-01", sep = "-"), min= paste(min(annee$Annee), "01-01", sep = "-")
-                                       , end = paste(max(annee$Annee), "12-31", sep = "-"), paste(max(annee$Annee), "12-31", sep = "-")))
+                                       , start = annee_min(), min= annee_min()
+                                       , end = annee_max(), max = annee_max()))
   #--- 2 type of date : 
   # - choix_date : used to compare the start and end date range
-  # - annee : used to compare the year of the start and end date range to the year of the study
+  # - annee : displayed to know the years seelcted
   choix_date_start<-reactive(
     return(as.character(input$date[1]))
   )
@@ -83,20 +81,20 @@ shinyServer ( function(input, output, session){
   output$date_selection<-renderText(paste("De", annee_start(), "à", annee_end(), sep = " "))
   
   #---- data used for the construction of the dataframe of NA in the range of the chosen date
-  # Dates conditions are ; date start <= date end, year of date start <= year of study and year of date end >= year of study
+  # Dates conditions are : date start <= date end, year of date start <= year of study and year of date end >= year of study
   new_data_with_station<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() <= Annee & annee_end() >= Annee, select = c(choix_parametres(),"NOM_SITE"))
+    subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = c(choix_parametres(), "NOM_SITE"))
   )
   
   #--- data with parameters setted by user in the date range selected
   new_data<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() <= Annee & annee_end() >= Annee, select = choix_parametres())
+    subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = choix_parametres())
   )
   output$new_data<-renderDataTable(new_data())
   
   #--- Calculus of the number of NA by col and creation of the dataframe
   nb_na<-reactive(
-    #----- if data is not null (nrow(new_data())) stations(length(choix_stations)) and parametres(length(choix_parametres)) are selected
+    #----- if data selected is not null (nrow(new_data())) stations(length(choix_stations)) and parametres(length(choix_parametres)) are selected
     if(length(choix_parametres())>=1 & length(choix_stations())>=1 & nrow(new_data()) > 0){
       na<-aggregate(new_data(), list(new_data_with_station()$NOM_SITE), function(x) sum(is.na(x)))
       colnames(na)<-c("NOM_SITE", choix_parametres()) # change the name of the first column
@@ -107,14 +105,15 @@ shinyServer ( function(input, output, session){
   
   #--- data whitout NA n the date range selected
   data_sans_na<-reactive(
-    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() <= Annee & annee_end() >= Annee, select = choix_parametres()))
+    subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = choix_parametres())
   )
   output$data_sans_na<-renderDataTable(data_sans_na())
   
   #--- ACP result
   
   acp<-reactive(
-    PCA(scale(data_sans_na()), graph=FALSE))
+    PCA(scale(data_sans_na()), graph=FALSE)
+  )
   
   vfm<-reactive(
     plot(acp(), choix="var",axes = c(1,2))

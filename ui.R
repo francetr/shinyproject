@@ -78,5 +78,4 @@ shinyUI( navbarPage(
            )
   )
 )
-  
 )
