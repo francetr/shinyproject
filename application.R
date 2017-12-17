@@ -112,7 +112,6 @@ server <- function(input, output, session){
   output$parametres  <- renderText({choix_parametres()}) # display the selected parametres
   
   #---- Reactive objects of the date selected by user
-  # TODO adapt the case where user select date start > date end
   annee_min<-reactive(
     return(as.character(min(annee$Annee)))
            )
@@ -127,21 +126,31 @@ server <- function(input, output, session){
   output$date<-renderUI(dateRangeInput(inputId = "date", label = "Choix de la date", startview = "year", format = "dd-mm-yyyy"
                                        , start = paste(min(annee$Annee), "01-01", sep = "-"), min= paste(min(annee$Annee), "01-01", sep = "-")
                                        , end = paste(max(annee$Annee), "12-31", sep = "-"), paste(max(annee$Annee), "12-31", sep = "-")))
+  #--- 2 type of date : 
+  # - choix_date : used to compare the start and end date range
+  # - annee : used to compare the year of the start and end date range to the year of the study
   choix_date_start<-reactive(
     return(as.character(input$date[1]))
+  )
+  annee_start<-reactive(
+    return(as.character(input$date[1], "%Y"))
   )
   choix_date_end<-reactive(
     return(as.character(input$date[2]))
   )
+  annee_end<-reactive(
+    return(as.character(input$date[2], "%Y"))
+  )
   
   #---- data used for the construction of the dataframe of NA in the range of the chosen date
+  # Dates conditions are ; date start <= date end, year of date start <= year of study and year of date end >= year of study
   new_data_with_station<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & choix_date_start() <= data_annee()$Annee & choix_date_end() >= data_annee()$Annee, select = c(choix_parametres(),"NOM_SITE"))
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() < Annee & annee_end() > Annee, select = c(choix_parametres(),"NOM_SITE"))
   )
   
   #--- data with parameters setted by user in the date range selected
   new_data<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & choix_date_start() <= data_annee()$Annee & choix_date_end() >= data_annee()$Annee, select = choix_parametres())
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() < Annee & annee_end() > Annee, select = c(choix_parametres(),"NOM_SITE"))
   )
   output$new_data<-renderDataTable(new_data())
   
@@ -158,7 +167,7 @@ server <- function(input, output, session){
   
   #--- data whitout NA n the date range selected
   data_sans_na<-reactive(
-    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & choix_date_start() <= data_annee()$Annee & choix_date_end() >= data_annee()$Annee, select = choix_parametres()))
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() < Annee & annee_end() > Annee, select = c(choix_parametres(),"NOM_SITE"))
   )
   output$data_sans_na<-renderDataTable(data_sans_na())
   
