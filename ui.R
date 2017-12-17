@@ -37,8 +37,8 @@ shinyUI( navbarPage(
                     ),
                     #----- Parametres choices
                     column(4, strong("Années disponibles pour l'étude :"), textOutput("date_range")
-                           #---- TODO
                            , uiOutput("date")
+                           , h4("Dates sélectionnées"),  textOutput("date_selection")
                            , helpText("Deux paramètres doivent être sélectionnés")
                            , uiOutput("parametres_checkbox")
                            , actionButton(inputId = "allParametres", label = "Select all")

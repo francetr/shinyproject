@@ -80,15 +80,17 @@ shinyServer ( function(input, output, session){
     return(as.character(input$date[2], "%Y"))
   )
   
+  output$date_selection<-renderText(paste("De", annee_start(), "à", annee_end(), sep = " "))
+  
   #---- data used for the construction of the dataframe of NA in the range of the chosen date
   # Dates conditions are ; date start <= date end, year of date start <= year of study and year of date end >= year of study
   new_data_with_station<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() < Annee & annee_end() > Annee, select = c(choix_parametres(),"NOM_SITE"))
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() <= Annee & annee_end() >= Annee, select = c(choix_parametres(),"NOM_SITE"))
   )
   
   #--- data with parameters setted by user in the date range selected
   new_data<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() < Annee & annee_end() > Annee, select = choix_parametres())
+    subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() <= Annee & annee_end() >= Annee, select = choix_parametres())
   )
   output$new_data<-renderDataTable(new_data())
   
@@ -105,7 +107,7 @@ shinyServer ( function(input, output, session){
   
   #--- data whitout NA n the date range selected
   data_sans_na<-reactive(
-    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() < Annee & annee_end() > Annee, select = choix_parametres()))
+    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & choix_date_start() <= choix_date_end() & annee_start() <= Annee & annee_end() >= Annee, select = choix_parametres()))
   )
   output$data_sans_na<-renderDataTable(data_sans_na())
   
