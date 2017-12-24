@@ -1,9 +1,8 @@
 library(shiny)
 library(FactoMineR)
 library(lattice)
-setwd("~/Bureau/m2/s3/stat/project/script")
 # mois<-read.csv("bdd_mois_somlit.csv", header = T,  dec = ".")
-annee<-read.csv("bdd_annee_somlit.csv", header = T,  dec = ".")
+annee<-read.csv("base_mysomlit.csv", header = T,  dec = ".")
 
 
 #-------- user interface part
@@ -70,7 +69,16 @@ ui <- navbarPage(
            column(12,
                   fluidRow(
                     h2("Représentations graphiques"),
-                    column(12
+                    column(4, helpText("Veuillez a séléctionner au minimum 2 paramètres et 1 station")
+                           , uiOutput("parametres_checkbox2")
+                           , actionButton(inputId = "allParametres2", label = "Select all")
+                           , actionButton(inputId = "noParametres2", label = "Deselect all")
+                           , p("Représentation graphique pour les paramètres suivants : "), hr(), verbatimTextOutput("parametres2")
+                           , p("Pour les stations suivants : "), hr(), verbatimTextOutput("stations2")
+                            ),
+                    column(8
+                           # , dataTableOutput("tab_graph")
+                           , plotOutput("parametres_representation")
                            )
                     )
                   )
@@ -101,14 +109,14 @@ server <- function(input, output, session){
   observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1))})
   
   #---- Reactive objects of the stations/parametres selected by user
-  choix_stations<-choix_stations2<-reactive(
+  choix_stations<-reactive(
     {return(input$stations)}
   )
-  choix_parametres<-choix_parametres2<-reactive(
+  choix_parametres<-reactive(
     {return(input$parametres)}
   )
   
-  output$stations <- renderText({choix_stations()}) # display the selected stations
+  output$stations<- output$stations2 <- renderText({choix_stations()}) # display the selected stations
   output$parametres  <- renderText({choix_parametres()}) # display the selected parametres
   
   #---- Reactive objects of the date selected by user
@@ -127,7 +135,7 @@ server <- function(input, output, session){
                                        , end = annee_max(), max = annee_max()))
   #--- 2 type of date : 
   # - choix_date : used to compare the start and end date range
-  # - annee : displayed to know the years seelcted
+  # - annee : displayed to know the years selected
   choix_date_start<-reactive(
     return(as.character(input$date[1]))
   )
@@ -166,9 +174,9 @@ server <- function(input, output, session){
   )
   output$nb_na<-renderDataTable(nb_na())
   
-  #--- data whitout NA n the date range selected
+  #--- data whitout NA for the date range selected
   data_sans_na<-reactive(
-    subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = choix_parametres())
+    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = c(choix_parametres(), "Annee")))
   )
   output$data_sans_na<-renderDataTable(data_sans_na())
   
@@ -197,6 +205,40 @@ server <- function(input, output, session){
     
   )
   output$ifm<-renderPlot(ifm())
+  
+  
+  #---- Graphical representation of environnemental variables
+  #---- We take the same object used for the choices of parametres for the PCA 
+  output$parametres_checkbox2 <- renderUI(checkboxGroupInput(inputId = "parametres2", label = ("Choix des paramètres pour la représentation graphique"), choices = choix_parametres() , selected = choix_parametres()))
+
+  observeEvent(input$allParametres2, {updateCheckboxGroupInput(session, "parametres2", label = "Choix des parametres pour la représentation graphique", choices=choix_parametres(), selected = choix_parametres())})
+  observeEvent(input$noParametres2, {updateCheckboxGroupInput(session, "parametres2", label = "Choix des parametres pour la représentation graphique", choices=choix_parametres())})
+  
+  #---- Display the parametres selected for graphical representation
+  choix_parametres2<-reactive(
+    {return(input$parametres2)}
+  )
+  output$parametres2  <- renderText({choix_parametres2()}) # display the selected parametres
+  
+  #---- data for graph representation with Annee
+  data_graph_avec_annee<- reactive(
+    subset(data_sans_na(), select = c(choix_parametres2(), "Annee"))
+  )
+  
+  #---- data for graph representation without Annee
+  data_graph<- reactive(
+    subset(data_sans_na(), select = choix_parametres2())
+  )
+  
+  
+  output$tab_graph<-renderDataTable(data_graph_avec_annee())
+  
+  output$parametres_representation<-renderPlot(xyplot(choix_parametres2()~Annee, xlab = "Annee", ylab = "Parametres"
+                                                      , data=data_graph_avec_annee(), type = "b", main= c(paste(choix_parametres2(), sep = " "), "~ Année")
+                                                      , group = choix_parametres2() ,col=c(1:length(choix_parametres2())), pch=c(1:length(choix_parametres2()))
+                                                      , key=list(space="right", lines=list(col=c(1:length(choix_parametres2()))), text=list(choix_parametres2()))
+         )
+  )
 } 
 
 shinyApp(ui = ui, server = server)
