@@ -313,12 +313,9 @@ server <- function(input, output, session){
     subset(data_sans_na(), select = c(choix_parametres2(), "Annee"))
   )
   
-  #---- data for graph representation without Annee
-  data_graph<- reactive(
-    subset(data_sans_na(), select = choix_parametres2())
-  )
   
   output$parametres_representation<-renderPlot({
+      validate(need(choix_parametres(), 'Veuillez choisir au moins 1 stations et 2 paramètres.'))
       xyplot( data_sans_na2()[, which(colnames(data_sans_na2())==choix_parametres2())]~data_sans_na2()$Annee, data = data_sans_na2(), groups = data_sans_na2()$NOM_SITE, type="b"
               , col=c(1:length(data_sans_na2()$NOM_SITE)), pch=c(1:length(data_sans_na2()$NOM_SITE))
               , xlab = "Annee", ylab = paste(choix_parametres2()), main = paste(c(choix_parametres2(), "en fonction de l'année" ) ,sep="")
