@@ -288,10 +288,6 @@ server <- function(input, output, session){
   
   output$biplot<-renderPlot(biplot())
   
-  
-  
-  
-  
   class_s<-reactive(
     #print(data_class())
     s.class(acp()$li, fac=data_class()$NOM_SITE)
@@ -308,18 +304,13 @@ server <- function(input, output, session){
   )
   output$parametres2  <- renderText({choix_parametres2()}) # display the selected parametres
   
-  #---- data for graph representation with Annee
-  data_graph_avec_annee<- reactive(
-    subset(data_sans_na(), select = c(choix_parametres2(), "Annee"))
-  )
-  
   
   output$parametres_representation<-renderPlot({
       validate(need(choix_parametres(), 'Veuillez choisir au moins 1 stations et 2 paramètres.'))
       xyplot( data_sans_na2()[, which(colnames(data_sans_na2())==choix_parametres2())]~data_sans_na2()$Annee, data = data_sans_na2(), groups = data_sans_na2()$NOM_SITE, type="b"
               , col=c(1:length(data_sans_na2()$NOM_SITE)), pch=c(1:length(data_sans_na2()$NOM_SITE))
               , xlab = "Annee", ylab = paste(choix_parametres2()), main = paste(c(choix_parametres2(), "en fonction de l'année" ) ,sep="")
-              , key=list(space="right", lines=list(col=c(1:length(levels(data_sans_na2()$NOM_SITE)))), text=list(levels(data_sans_na2()$NOM_SITE))))
+              , key=list(title="Stations", space="right", lines=list(col=c(1:length(levels(data_sans_na2()$NOM_SITE)))), text=list(levels(data_sans_na2()$NOM_SITE))))
       })
 } 
 
