@@ -2,7 +2,8 @@ library(shiny)
 library(FactoMineR)
 library(lattice)
 library(ade4)
-annee<-read.csv("base_mysomlit.csv", header = T,  dec = ".")
+library(factoextra)
+annee<-read.csv("/home/kourmanalieva/Bureau/shinyproject-master/base_mysomlit.csv", header = T,  dec = ".")
 
 
 #-------- user interface part
@@ -54,13 +55,30 @@ ui <- navbarPage(
            column(12,
                   fluidRow(
                     h2("Analyse multivariée"),
-                    column(4,
+                    column(7,
+                    	     h4("Cercle de corrélation"),
                            plotOutput("vfm")),
-                    column(4,
+                 		       h5("Un cos2 élevé indique une bonne représentation de la variable sur les axes principaux en considération. Dans ce cas, la variable est positionnée à proximité de la circonférence du cercle de corrélation. Un faible cos2 indique que la variable n’est pas parfaitement représentée par les axes principaux. Dans ce cas, la variable est proche du centre du cercle."),
+                    column(5,
+                    	   h4("Graphique des individus"),
                            plotOutput("ifm")),
                     column(4,
-                           plotOutput("ebouli"))
+                           plotOutput("ebouli")),
+                    column(4,
+                           h4("Contribution des variables sur le premier axe (top 10)"),
+                           plotOutput("contribution_d1")),
+
+                  	column(4,
+
+                  	       h4("Contribution des variables sur le second axe (top 10)"),
+                           plotOutput("contribution_d2")),
+
+                  	column(8,
+                  	       h4("Biplot des individus et des variables"),
+                           plotOutput("biplot"))
+                
                     )
+
                   )
            ),
   
@@ -190,27 +208,65 @@ server <- function(input, output, session){
     )
   
   vfm<-reactive(
-    plot(acp(), choix="var",axes = c(1,2))
+    # plot(acp(), choix="var",axes = c(1,2))
+    #fviz_pca_var(acp(), col.var = "black")
+    fviz_pca_var(acp(), col.var = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = TRUE # Évite le chevauchement de texte
+             )
   )
   output$vfm<-renderPlot(vfm())
   
   #--- ebouli
   
   ebouli<-reactive(
-    barplot(acp()$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres")
-  )
+  	barplot(acp()$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres"))
   output$ebouli<-renderPlot(ebouli())
+  
+  
   
   #--- individual factor map
   
   ifm<-reactive(
-    plot(acp(),choix="ind",axes= c(1,2))
+   fviz_pca_ind (acp(), col.ind = "cos2",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             repel = FALSE # Évite le chevauchement de texte
+             )
   )
   output$ifm<-renderPlot(ifm())
   
   data_class<-reactive({
     na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = c(choix_parametres(), "Annee", "NOM_SITE")))
   })
+  #-----contribution
+  contribution_d1<-reactive(
+    fviz_contrib(acp(), choice = "var", axes = 1, top = 10)
+  )
+  output$contribution_d1<-renderPlot(contribution_d1())
+
+ contribution_d2<-reactive(
+    fviz_contrib(acp(), choice = "var", axes = 2, top = 10)
+  )
+  output$contribution_d2<-renderPlot(contribution_d2())
+
+  biplot<-reactive(
+    fviz_pca_biplot(acp(), 
+                # Individus
+                geom.ind = "point",
+                pointshape = 21, pointsize = 2,
+                palette = "jco",
+                addEllipses = FALSE,
+                # Variables
+                col.var = "contrib",
+                gradient.cols = "RdYlBu",
+                
+                legend.title = list(fill = "stations", color = "Contribution",
+                                    alpha = "Contribution")
+                )
+  )
+  output$biplot<-renderPlot(biplot())
+  
+  
   
   
   
