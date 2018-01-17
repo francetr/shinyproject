@@ -3,7 +3,7 @@ library(FactoMineR)
 library(lattice)
 library(ade4)
 library(factoextra)
-annee<-read.csv("~/Bureau/m2/s3/stat/project/script/base_mysomlit.csv", header = T,  dec = ".")
+annee<-read.csv("base_mysomlit.csv", header = T,  dec = ".")
 
 
 #-------- user interface part
@@ -208,46 +208,68 @@ server <- function(input, output, session){
   vfm<-reactive(
     # plot(acp(), choix="var",axes = c(1,2))
     #fviz_pca_var(acp(), col.var = "black")
+    
     fviz_pca_var(acp(), col.var = "cos2",
                  gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
                  repel = TRUE # Évite le chevauchement de texte
     )
   )
-  output$vfm<-renderPlot(vfm())
+  
+  
+  output$vfm<-renderPlot({
+    validate(need(choix_stations(), "Veuillez choisir au moins 1 stations et 2 parametres"))
+    vfm()
+  }
+  )
+  
   
   #--- ebouli
   
-  ebouli<-reactive(
-    barplot(acp()$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres"))
+  ebouli<-reactive({
+    validate(need(choix_stations(), ""))
+    barplot(acp()$eig[,1], main="Ebouli des valeurs propres", xlab = "Composantes", ylab="Valeurs propres")
+  }
+  )
   output$ebouli<-renderPlot(ebouli())
+  
   
   
   
   #--- individual factor map
   
-  ifm<-reactive(
+  ifm<-reactive({
+    validate(need(choix_stations(), ""))
     fviz_pca_ind (acp(), col.ind = "cos2",
                   gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
                   repel = FALSE # Évite le chevauchement de texte
     )
+  }
+  
   )
   output$ifm<-renderPlot(ifm())
+  
+  
   
   data_class<-reactive({
     na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = c(choix_parametres(), "Annee", "NOM_SITE")))
   })
   #-----contribution
-  contribution_d1<-reactive(
+  contribution_d1<-reactive({
+    validate(need(choix_stations(), ""))
     fviz_contrib(acp(), choice = "var", axes = 1, top = 10)
-  )
+  })
   output$contribution_d1<-renderPlot(contribution_d1())
   
-  contribution_d2<-reactive(
+  contribution_d2<-reactive({
+    validate(need(choix_stations(), ""))
     fviz_contrib(acp(), choice = "var", axes = 2, top = 10)
+    
+  }
   )
   output$contribution_d2<-renderPlot(contribution_d2())
   
-  biplot<-reactive(
+  biplot<-reactive({
+    validate(need(choix_stations(), ""))
     fviz_pca_biplot(acp(), 
                     # Individus
                     geom.ind = "point",
@@ -261,7 +283,9 @@ server <- function(input, output, session){
                     legend.title = list(fill = "stations", color = "Contribution",
                                         alpha = "Contribution")
     )
+  }
   )
+  
   output$biplot<-renderPlot(biplot())
   
   
