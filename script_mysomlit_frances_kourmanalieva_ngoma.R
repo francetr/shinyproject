@@ -1,7 +1,7 @@
 library(shiny)
 library(FactoMineR)
 library(lattice)
-# mois<-read.csv("bdd_mois_somlit.csv", header = T,  dec = ".")
+library(ade4)
 annee<-read.csv("base_mysomlit.csv", header = T,  dec = ".")
 
 
@@ -89,7 +89,6 @@ ui <- navbarPage(
 server <- function(input, output, session){
   #--- Display raw data
   data_annee<-reactive({
-    # annee$Annee<-as.Date(as.character(paste(annee$Annee, "01-01", sep = "-")))
     return (annee)
   })
   
@@ -105,8 +104,8 @@ server <- function(input, output, session){
   observeEvent(input$noStations, {updateCheckboxGroupInput(session, "stations", label = "Choix des stations", choices=levels(annee$NOM_SITE))})
   
   #---- For parametres
-  observeEvent(input$allParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1), selected = tail(colnames(annee),-1))})
-  observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-1))})
+  observeEvent(input$allParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-2), selected = tail(colnames(annee),-2))})
+  observeEvent(input$noParametres, {updateCheckboxGroupInput(session, "parametres", label = "Choix des parametres", choices=tail(colnames(annee),-2))})
   
   #---- Reactive objects of the stations/parametres selected by user
   choix_stations<-reactive(
@@ -176,9 +175,13 @@ server <- function(input, output, session){
   
   #--- data whitout NA for the date range selected
   data_sans_na<-reactive(
-    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = c(choix_parametres(), "Annee")))
+    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = c(choix_parametres())))
   )
   output$data_sans_na<-renderDataTable(data_sans_na())
+  
+  data_sans_na2<-reactive(
+    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = c(choix_parametres(), "Annee")))
+  )
   
   #--- ACP result
   
@@ -202,10 +205,20 @@ server <- function(input, output, session){
   
   ifm<-reactive(
     plot(acp(),choix="ind",axes= c(1,2))
-    
   )
   output$ifm<-renderPlot(ifm())
   
+  data_class<-reactive({
+    na.omit(subset(data_annee(), NOM_SITE %in% choix_stations() & as.Date(as.character(choix_date_start())) <= as.Date(as.character(choix_date_end())) & as.Date(choix_date_start()) <= as.Date(as.character(paste(Annee, "12-31", sep = "-"))) & as.Date(choix_date_end()) >= as.Date(paste(Annee, "01-01", sep = "-")) , select = c(choix_parametres(), "Annee", "NOM_SITE")))
+  })
+  
+  
+  
+  class_s<-reactive(
+    #print(data_class())
+    s.class(acp()$li, fac=data_class()$NOM_SITE)
+  )
+  output$class_s<-renderPlot(class_s())
   
   #---- Graphical representation of environnemental variables
   #---- We take the same object used for the choices of parametres for the PCA 
@@ -233,12 +246,9 @@ server <- function(input, output, session){
   
   output$tab_graph<-renderDataTable(data_graph_avec_annee())
   
-  output$parametres_representation<-renderPlot(xyplot(choix_parametres2()~Annee, xlab = "Annee", ylab = "Parametres"
-                                                      , data=data_graph_avec_annee(), type = "b", main= c(paste(choix_parametres2(), sep = " "), "~ Année")
-                                                      , group = choix_parametres2() ,col=c(1:length(choix_parametres2())), pch=c(1:length(choix_parametres2()))
-                                                      , key=list(space="right", lines=list(col=c(1:length(choix_parametres2()))), text=list(choix_parametres2()))
-         )
-  )
+  output$parametres_representation<-renderPlot({
+    plot(data_graph_avec_annee()~data_graph_avec_annee()$Annee)
+    })
 } 
 
 shinyApp(ui = ui, server = server)
