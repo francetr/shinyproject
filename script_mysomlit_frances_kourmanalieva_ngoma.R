@@ -89,7 +89,6 @@ ui <- navbarPage(
                     h2("Représentations graphiques"),
                     column(4, helpText("Veuillez a séléctionner au minimum 2 paramètres et 1 station")
                            , uiOutput("parametres_list")
-                           , p("Représentation graphique pour les paramètres suivants : "), hr(), verbatimTextOutput("parametres2")
                            , p("Pour les stations suivants : "), hr(), verbatimTextOutput("stations2")
                     ),
                     column(8
@@ -296,20 +295,18 @@ server <- function(input, output, session){
   
   #---- Graphical representation of environnemental variables
   #---- We take the same object used for the choices of parametres for the PCA 
-  output$parametres_list <- renderUI(selectInput(inputId = "parametres2", label = ("Choix des paramètres pour la représentation graphique"), choices = choix_parametres() , selected = choix_parametres()))
+  output$parametres_list <- renderUI(selectInput(inputId = "parametres2", label = ("Choix du paramètre pour la représentation graphique"), choices = choix_parametres() , selected = choix_parametres()))
   
   #---- Display the parametres selected for graphical representation
   choix_parametres2<-reactive(
     {return(input$parametres2)}
   )
-  output$parametres2  <- renderText({choix_parametres2()}) # display the selected parametres
-  
   
   output$parametres_representation<-renderPlot({
       validate(need(choix_parametres(), 'Veuillez choisir au moins 1 stations et 2 paramètres.'))
       xyplot( data_sans_na2()[, which(colnames(data_sans_na2())==choix_parametres2())]~data_sans_na2()$Annee, data = data_sans_na2(), groups = data_sans_na2()$NOM_SITE, type="b"
               , col=c(1:length(data_sans_na2()$NOM_SITE)), pch=c(1:length(data_sans_na2()$NOM_SITE))
-              , xlab = "Annee", ylab = paste(choix_parametres2()), main = paste(c(choix_parametres2(), "en fonction de l'année" ) ,sep="")
+              , xlab = "Annee", ylab = paste(choix_parametres2()), main = paste(choix_parametres2(), "en fonction de l'année", sep=" ")
               , key=list(title="Stations", space="right", lines=list(col=c(1:length(levels(data_sans_na2()$NOM_SITE)))), text=list(levels(data_sans_na2()$NOM_SITE))))
       })
 } 
